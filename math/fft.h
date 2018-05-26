@@ -182,3 +182,53 @@ V<R> multiply_opt2(const V<R> &a, const V<R> &b) {
     }
     return c;
 }
+
+template<int B, uint MD>
+void nft(bool type, V<ModInt<MD>> &c) {
+    using Mint = ModInt<MD>;
+    int N = int(c.size());
+    int s = 0;
+    while ((1<<s) < N) s++;
+    V<Mint> a = c, b(N);
+    for (int i = 1; i <= s; i++) {
+        int W = 1<<(s-i); //変更後の幅W
+        Mint base = pow(Mint(B), (MD-1)/(1<<i));
+        if (type) base = Mint::inv(base);
+        Mint now = 1;
+        for (int y = 0; y < N/2; y += W) {
+            for (int x = 0; x < W; x++) {
+                auto l =       a[y<<1 | x];
+                auto r = now * a[y<<1 | x | W];
+                b[y | x]        = l+r;
+                b[y | x | N>>1] = l-r;
+            }
+            now *= base;
+        }
+        swap(a, b);
+    }
+    c = a;
+}
+
+
+template<uint G, class Mint>
+V<Mint> multiply(const V<Mint> &a, const V<Mint> &b) {
+    int A = int(a.size()), B = int(b.size());
+    if (!A || !B) return {};
+    int lg = 1;
+    while ((1<<lg) < A+B-1) lg++;
+    int N = 1<<lg;
+    V<Mint> ac(N, Mint(0)), bc(N, Mint(0));
+    for (int i = 0; i < A; i++) ac[i] = a[i];
+    for (int i = 0; i < B; i++) bc[i] = b[i];
+    nft<G>(false, ac);
+    nft<G>(false, bc);
+    for (int i = 0; i < N; i++) {
+        ac[i] *= bc[i];
+    }
+    nft<G>(true, ac);
+    V<Mint> c(A+B-1);
+    for (int i = 0; i < A+B-1; i++) {
+        c[i] = ac[i] / Mint(N);
+    }
+    return c;
+}
